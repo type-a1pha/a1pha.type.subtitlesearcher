@@ -8,6 +8,7 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Random;
@@ -103,33 +104,7 @@ public class SubtitlesSearcher {
         return result;
     }
     
-    /**
-     * @param args the command line arguments
-     * 
-     * MODE 1: print one solution for every file found in the folder
-     * MODE 2: print only the best solutions for the files in the given folder
-     */
-    public static void main(String[] args) {
-        int mode = 2;
-        boolean extended_print = true; //not available in mode 3
-        String input = load_input("input_text.txt");
-        String root = "search_folder";
-        String filename = "prova.srt";
-        if(mode == 0){ //One solution from one file; the file is filename
-            LabeledSolution sol = oneSolutionOneFile(input, filename);
-            if(sol == null){
-                System.out.println("Mode 0: No file processed");
-            }
-            else{
-                if(extended_print){
-                    System.out.println("Mode 0: 1 file processed\n\n" + sol.toExtendedString());
-                }
-                else{
-                    System.out.println("Mode 0: 1 file processed\n\n" + sol);
-                }
-            }
-        }
-        if(mode == 1){ //print one solution for every file found in the folder
+    private static void mode_1(String input, String root, boolean extended_print){
             LinkedList<LabeledSolution> to_print = manySolutionsManyFiles(input, root);
             System.out.println("Mode 1: " + to_print.size() + " Files Processed\n");
             Iterator<LabeledSolution> it = to_print.iterator();
@@ -143,9 +118,12 @@ public class SubtitlesSearcher {
                         System.out.println(sol);
                     }
                 }
-            }       
-        }
-        if(mode == 2){ //compute one solution for every file in the folder but print only the best ones
+            }
+            System.out.println("Error count during parsing: "+SrtParser.getErrorCount()+" on "+
+            SrtParser.getParseCount()+" parsed");
+    }
+    
+    private static void mode_2(String input, String root, boolean extended_print){
             LinkedList<LabeledSolution> solutions = manySolutionsManyFiles(input, root);
             int min = Integer.MAX_VALUE;
             Iterator<LabeledSolution> it = solutions.iterator();
@@ -170,9 +148,11 @@ public class SubtitlesSearcher {
                     }
                 }
             }
-        }
-        if(mode == 3){ //mix the solutions to get the best one built from all the files
-            //it's like (SHOULD BE!!!) the solution computed from a bigger file given from all the original files mixed together
+            System.out.println("Error count during parsing: "+SrtParser.getErrorCount()+" on "+
+            SrtParser.getParseCount()+" parsed");
+    }
+    
+    private static void mode_3(String input, String root, boolean extended_print){
             LinkedList<LabeledSolution> solutions = manySolutionsManyFiles(input, root);
             System.out.println("Mode 3: " + solutions.size() + " Files Processed\n");
             if(solutions.size() > 0){
@@ -241,8 +221,137 @@ public class SubtitlesSearcher {
                     }
                 }
             }
+            System.out.println("Error count during parsing: "+SrtParser.getErrorCount()+" on "+
+            SrtParser.getParseCount()+" parsed");
+    }
+    
+    private static void info(){
+        System.out.println(
+                "Subtitle Searcher\n\n"
+                
+                + "Arguments are:\n"
+                + "-mode { 1,2,3 }\n"
+                + "-inputstr String\n"              
+                + "-inputfile filename.txt\n"
+                + "-folder String\n"
+                + "-ext //for extended print (default)\n"
+                + "-notext //for non extended print\n"
+                + "-info //for (this) info paragraph\n\n"
+                
+                + "Behavior:"
+                + "MODE 1: print one solution for every file found in the folder\n"
+                + "MODE 2: print only the best solutions (based on the cost values) for the files in the given folder\n"
+                + "MODE 3: mix the solutions from all the files to get the best possible solution out of all the information given\n"    
+        );
+    }
+    
+    /**
+     * @param args the command line arguments
+     * 
+     * MODE 1: print one solution for every file found in the folder
+     * MODE 2: print only the best solutions (based on the cost values) for the files in the given folder
+     * MODE 3: mix the solutions from all the files to get the best possible solution out of all the information given
+     */
+    public static void main(String[] args) {
+        int[] availableModes = {1,2,3};
+        int mode = 0;
+        boolean extended_print = true; //not available in mode 3
+        /* String input = load_input("input_text.txt");
+        String root = "search_folder";
+        String filename = "prova.srt";
+        */
+        String input = null;
+        String root = null;
+        if(args.length == 0){
+            info();
+            return;
         }
-        System.out.println("Error count during parsing: "+SrtParser.getErrorCount()+" on "+
-                SrtParser.getParseCount()+" parsed");
+        for(int i=0; i<args.length; i++){
+            switch(args[i]){
+                case "-mode": 
+                    if(i+1 < args.length){
+                        try{
+                            mode = Integer.parseInt(args[i+1]);
+                            boolean found = false;
+                            for(int k=0; k<availableModes.length; k++){
+                                if(availableModes[k] == mode){
+                                    found = true;
+                                }
+                            }
+                            if( ! found ){
+                                System.out.println("-mode argument is not in {1,2,3}");
+                                return;
+                            }
+                        } catch(NumberFormatException e) {
+                            System.out.println("-mode argument is not an integer");
+                            return;
+                        }  
+                    } else {
+                        System.out.println("-mode value not supplied");
+                        return;
+                    }
+                    System.out.println("-mode: value supplied "+mode);
+                    i++;
+                    break;
+                case "-inputstr": 
+                    if(i+1 < args.length){
+                        input = args[i+1];
+                    } else {
+                        System.out.println("-inputstr value not supplied");
+                        return;
+                    } 
+                    System.out.println("-inputstr: value supplied "+input);
+                    i++;
+                    break;
+                case "-inputfile": 
+                    if(i+1 < args.length){
+                        input = load_input(args[i+1]);
+                    } else {
+                        System.out.println("-inputfile value not supplied");
+                        return;
+                    }                     
+                    System.out.println("-inputfile: value supplied "+input);
+                    i++;
+                    break;
+                case "-folder":
+                    if(i+1 < args.length){
+                        root = args[i+1];
+                    } else {
+                        System.out.println("-folder value not supplied");
+                        return;
+                    } 
+                    System.out.println("-folder: value supplied "+root);
+                    i++;
+                    break;
+                case "-ext": 
+                    extended_print = true;
+                    break;
+                case "-notext": 
+                    extended_print = false;
+                    break;
+                case "-info": 
+                    info();
+                    break;
+                default:
+                    System.out.println(args[i]+" is not a valid argument or modifier");
+                    break;
+            }
+        }
+        if(input == null || root == null){
+            System.out.println("Missing arguments: -mode, -inputstr or -inputfile, and -folder are necessary! (-info for info)");
+            return;
+        }
+        File file = new File(root);
+        if( ! file.isDirectory() ){
+            System.out.println("The provided path in -folder is not a folder!");
+            return;
+        }
+        //call the appropriate routine
+        switch(mode){
+            case 1: mode_1(input,root,extended_print); break;
+            case 2: mode_2(input,root,extended_print); break;
+            case 3: mode_3(input,root,extended_print); break;
+            default: System.out.println("no mode value specified (use -mode)");
+        } 
     }
 }
