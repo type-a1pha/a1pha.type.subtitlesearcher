@@ -310,7 +310,7 @@ public class SubtitlesSearcher {
                         System.out.println("-inputfile value not supplied");
                         return;
                     }                     
-                    System.out.println("-inputfile: value supplied "+input);
+                    System.out.println("-inputfile: value supplied "+args[i+1]);
                     i++;
                     break;
                 case "-folder":
