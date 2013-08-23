@@ -7,6 +7,8 @@ package subtitlessearcher;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -236,6 +238,7 @@ public class SubtitlesSearcher {
                 + "-folder String\n"
                 + "-ext //for extended print (default)\n"
                 + "-notext //for non extended print\n"
+                + "-output filename"
                 + "-info //for (this) info paragraph\n\n"
                 
                 + "Behavior:"
@@ -262,6 +265,7 @@ public class SubtitlesSearcher {
         */
         String input = null;
         String root = null;
+        String outputFilename = null;
         if(args.length == 0){
             info();
             return;
@@ -279,15 +283,15 @@ public class SubtitlesSearcher {
                                 }
                             }
                             if( ! found ){
-                                System.out.println("-mode argument is not in {1,2,3}");
+                                System.out.println("ERROR: -mode argument is not in {1,2,3}");
                                 return;
                             }
                         } catch(NumberFormatException e) {
-                            System.out.println("-mode argument is not an integer");
+                            System.out.println("ERROR: -mode argument is not an integer");
                             return;
                         }  
                     } else {
-                        System.out.println("-mode value not supplied");
+                        System.out.println("ERROR: -mode value not supplied");
                         return;
                     }
                     System.out.println("-mode: value supplied "+mode);
@@ -297,7 +301,7 @@ public class SubtitlesSearcher {
                     if(i+1 < args.length){
                         input = args[i+1];
                     } else {
-                        System.out.println("-inputstr value not supplied");
+                        System.out.println("ERROR: -inputstr value not supplied");
                         return;
                     } 
                     System.out.println("-inputstr: value supplied "+input);
@@ -307,7 +311,7 @@ public class SubtitlesSearcher {
                     if(i+1 < args.length){
                         input = load_input(args[i+1]);
                     } else {
-                        System.out.println("-inputfile value not supplied");
+                        System.out.println("ERROR: -inputfile value not supplied");
                         return;
                     }                     
                     System.out.println("-inputfile: value supplied "+args[i+1]);
@@ -317,10 +321,20 @@ public class SubtitlesSearcher {
                     if(i+1 < args.length){
                         root = args[i+1];
                     } else {
-                        System.out.println("-folder value not supplied");
+                        System.out.println("ERROR: -folder value not supplied");
                         return;
                     } 
                     System.out.println("-folder: value supplied "+root);
+                    i++;
+                    break;
+                case "-outputfile": 
+                    if(i+1 < args.length){
+                        outputFilename = args[i+1];
+                    } else {
+                        System.out.println("ERROR: -outputfile value not supplied");
+                        return;
+                    }                     
+                    System.out.println("-inputfile: value supplied "+outputFilename);
                     i++;
                     break;
                 case "-ext": 
@@ -333,25 +347,38 @@ public class SubtitlesSearcher {
                     info();
                     break;
                 default:
-                    System.out.println(args[i]+" is not a valid argument or modifier");
+                    System.out.println("ERROR: "+args[i]+" is not a valid argument or modifier");
                     break;
             }
         }
         if(input == null || root == null){
-            System.out.println("Missing arguments: -mode, -inputstr or -inputfile, and -folder are necessary! (-info for info)");
+            System.out.println("ERROR: Missing arguments: -mode, -inputstr or -inputfile, and -folder are necessary! (-info for info)");
             return;
         }
         File file = new File(root);
         if( ! file.isDirectory() ){
-            System.out.println("The provided path in -folder is not a folder!");
+            System.out.println("ERROR: The provided path in -folder is not a folder!");
             return;
+        }
+        PrintStream outStream = null;
+        if( outputFilename != null ){
+            try{
+                outStream = new PrintStream(outputFilename+".txt");
+            } catch (Exception e){
+                System.out.println("ERROR: Unable to create or write file: "+outputFilename+".txt");
+                return;
+            }
+            System.setOut(outStream);
         }
         //call the appropriate routine
         switch(mode){
             case 1: mode_1(input,root,extended_print); break;
             case 2: mode_2(input,root,extended_print); break;
             case 3: mode_3(input,root,extended_print); break;
-            default: System.out.println("no mode value specified (use -mode)");
+            default: 
+                System.setOut(System.out);
+                System.out.println("ERROR: no mode value specified (use -mode)");
         } 
+        if(outStream != null){ outStream.close(); }
     }
 }
